@@ -471,12 +471,22 @@
       moisture + '% fuel moisture, ' + fuels[currentFuel].label + '.';
   }
 
-  document.getElementById('wind').addEventListener('input', update);
-  document.getElementById('slope').addEventListener('input', update);
-  document.getElementById('moisture').addEventListener('input', update);
-  window.addEventListener('resize', update);
+document.getElementById('wind').addEventListener('input', update);
+document.getElementById('slope').addEventListener('input', update);
+document.getElementById('moisture').addEventListener('input', update);
+window.addEventListener('resize', update);
 
-  update();
+function reportHeight() {
+  var h = document.body.scrollHeight;
+  window.parent.postMessage({ height: h }, '*');
+  window.parent.postMessage('resize::' + h, '*');
+}
+
+window.addEventListener('load', reportHeight);
+window.addEventListener('resize', reportHeight);
+setTimeout(reportHeight, 500);
+
+update();
 </script>
 </body>
 </html>
