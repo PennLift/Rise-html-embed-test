@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fire behaviour</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #fff;
+    color: #1a1a1a;
+    padding: 20px 18px 32px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .intro {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 24px;
+    line-height: 1.4;
+  }
+
+  /* FUEL TYPE */
+  .fuel-row {
+    margin-bottom: 20px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #999;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .fuel-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .fuel-btn {
+    padding: 9px 8px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    font-family: Georgia, serif;
+    color: #555;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.2;
+  }
+
+  .fuel-btn.active {
+    border-color: #c0392b;
+    background: #fff5f5;
+    color: #c0392b;
+    font-weight: bold;
+  }
+
+  /* SLIDERS */
+  .slider-section {
+    margin-bottom: 18px;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .slider-name {
+    font-size: 14px;
+    color: #333;
+  }
+
+  .slider-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1a1a1a;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e8e8e8;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #c0392b;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #c0392b;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .slider-hints {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 3px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid #f0f0f0;
+    margin: 22px 0;
+  }
+
+  /* OUTPUT AREA */
+  .risk-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #27ae60, #f39c12, #e74c3c, #7b241c);
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .risk-marker {
+    position: absolute;
+    top: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #1a1a1a;
+    transform: translateX(-50%);
+    transition: left 0.3s ease;
+  }
+
+  .risk-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 4px;
+    margin-bottom: 20px;
+  }
+
+  .risk-level {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    transition: color 0.3s;
+    letter-spacing: -0.02em;
+  }
+
+  .plain-language {
+    font-size: 15px;
+    line-height: 1.55;
+    color: #333;
+    margin-bottom: 20px;
+    min-height: 48px;
+  }
+
+  /* CANVAS GRAPHIC */
+  .canvas-wrap {
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+  }
+
+  #a11y-live {
+    font-size: 13px;
+    color: #777;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<h1>How conditions affect fire</h1>
+<p class="intro">Adjust the conditions below to see how quickly fire behaviour can change.</p>
+
+<div class="fuel-row">
+  <span class="field-label">Fuel type</span>
+  <div class="fuel-options" role="group" aria-label="Fuel type">
+    <button class="fuel-btn active" data-fuel="grass" onclick="selectFuel(this)">Rank grass</button>
+    <button class="fuel-btn" data-fuel="gorse" onclick="selectFuel(this)">Gorse</button>
+    <button class="fuel-btn" data-fuel="pine" onclick="selectFuel(this)">Pine plantation</button>
+    <button class="fuel-btn" data-fuel="bush" onclick="selectFuel(this)">Native bush</button>
+  </div>
+</div>
+
+<div class="slider-section">
+  <div class="slider-header">
+    <span class="slider-name">Wind speed</span>
+    <span class="slider-value" id="wind-val">20 km/h</span>
+  </div>
+  <input type="range" id="wind" min="0" max="80" value="20" step="1" aria-label="Wind speed in km/h">
+  <div class="slider-hints"><span>Calm</span><span>Strong gale</span></div>
+</div>
+
+<div class="slider-section">
+  <div class="slider-header">
+    <span class="slider-name">Slope</span>
+    <span class="slider-value" id="slope-val">10°</span>
+  </div>
+  <input type="range" id="slope" min="0" max="40" value="10" step="1" aria-label="Slope in degrees">
+  <div class="slider-hints"><span>Flat</span><span>Very steep</span></div>
+</div>
+
+<div class="slider-section">
+  <div class="slider-header">
+    <span class="slider-name">Fuel moisture</span>
+    <span class="slider-value" id="moisture-val">15%</span>
+  </div>
+  <input type="range" id="moisture" min="3" max="30" value="15" step="1" aria-label="Fuel moisture percentage">
+  <div class="slider-hints"><span>Bone dry</span><span>Damp</span></div>
+</div>
+
+<hr class="divider">
+
+<div class="risk-bar" role="img" aria-label="Risk level indicator">
+  <div class="risk-marker" id="risk-marker"></div>
+</div>
+<div class="risk-labels">
+  <span>Low</span><span>Moderate</span><span>High</span><span>Extreme</span>
+</div>
+
+<div class="risk-level" id="risk-level">Moderate</div>
+<div class="plain-language" id="plain-language">Under these conditions, fire could spread faster than a person can run.</div>
+
+<div class="canvas-wrap">
+  <canvas id="fireCanvas" height="140" aria-label="Fire spread visualisation"></canvas>
+</div>
+
+<div id="a11y-live" aria-live="polite"></div>
+
+<script>
+  const fuels = {
+    grass:  { base: 1.2,  label: 'rank grass',      moistureThreshold: 20 },
+    gorse:  { base: 1.8,  label: 'gorse',           moistureThreshold: 25 },
+    pine:   { base: 1.0,  label: 'pine plantation', moistureThreshold: 18 },
+    bush:   { base: 0.5,  label: 'native bush',     moistureThreshold: 22 }
+  };
+
+  let currentFuel = 'grass';
+
+  function selectFuel(btn) {
+    document.querySelectorAll('.fuel-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFuel = btn.dataset.fuel;
+    update();
+  }
+
+  function calcSpread(wind, slope, moisture, fuelKey) {
+    const fuel = fuels[fuelKey];
+    const moistureEffect = Math.max(0.05, 1 - (moisture / fuel.moistureThreshold));
+    const windEffect = 1 + Math.pow(wind / 20, 1.5);
+    const slopeEffect = 1 + Math.pow(slope / 15, 1.6);
+    return fuel.base * windEffect * slopeEffect * moistureEffect;
+  }
+
+  function getRisk(spread) {
+    if (spread < 1.2) return { label: 'Low',      color: '#27ae60', pos: 10 };
+    if (spread < 3.0) return { label: 'Moderate', color: '#e67e22', pos: 35 };
+    if (spread < 6.0) return { label: 'High',     color: '#e74c3c', pos: 62 };
+    return               { label: 'Extreme',   color: '#7b241c', pos: 88 };
+  }
+
+  function getPlainLanguage(spread, wind, slope, moisture, fuelKey) {
+    const fuel = fuels[fuelKey];
+    const mins = Math.max(1, Math.round(100 / (spread * 16.7)));
+
+    if (moisture >= fuels[fuelKey].moistureThreshold * 0.9) {
+      return 'Fuel moisture is high — fire is unlikely to spread easily under these conditions.';
+    }
+    if (spread < 1.2) {
+      return 'Fire spread would be slow and relatively easy to manage under these conditions.';
+    }
+    if (spread < 3.0) {
+      return 'Fire could spread at a brisk walking pace. Conditions are manageable but worth watching.';
+    }
+    if (spread < 6.0) {
+      return 'Fire could outpace a running person. Suppression would be difficult without equipment.';
+    }
+    return 'Extreme conditions. Fire could travel the length of a rugby field in under ' + mins + ' minutes — suppression would be near impossible.';
+  }
+
+  function drawFire(spread, risk) {
+    const canvas = document.getElementById('fireCanvas');
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = canvas.clientWidth || 340;
+    canvas.width = displayW * dpr;
+    canvas.height = 140 * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const w = displayW;
+    const h = 140;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Ground
+    const groundY = h - 28;
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(0, groundY, w, h - groundY);
+
+    // Ground line
+    ctx.strokeStyle = '#d4c9b0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    ctx.lineTo(w, groundY);
+    ctx.stroke();
+
+    // Grass tufts
+    ctx.strokeStyle = '#b8a878';
+    ctx.lineWidth = 1.5;
+    for (let x = 20; x < w - 10; x += 18) {
+      const jitter = Math.sin(x * 0.3) * 3;
+      ctx.beginPath();
+      ctx.moveTo(x + jitter, groundY);
+      ctx.lineTo(x + jitter - 3, groundY - 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + jitter + 5, groundY);
+      ctx.lineTo(x + jitter + 7, groundY - 9);
+      ctx.stroke();
+    }
+
+    // Flames — number and size scale with spread
+    const intensity = Math.min(1, spread / 8);
+    const flameCount = Math.round(3 + intensity * 7);
+    const maxFlameH = 20 + intensity * 70;
+    const baseWidth = 14 + intensity * 12;
+
+    const centerX = w * 0.5;
+    const spacing = Math.min(36, (w * 0.7) / flameCount);
+
+    for (let i = 0; i < flameCount; i++) {
+      const t = flameCount === 1 ? 0.5 : i / (flameCount - 1);
+      const x = centerX - (flameCount - 1) * spacing * 0.5 + t * (flameCount - 1) * spacing;
+      const heightVariance = 0.7 + Math.sin(i * 1.3) * 0.3;
+      const fh = maxFlameH * heightVariance;
+      const fw = baseWidth * (0.8 + Math.sin(i * 0.7) * 0.2);
+
+      // Outer flame
+      const grad = ctx.createLinearGradient(x, groundY, x, groundY - fh);
+      if (intensity > 0.6) {
+        grad.addColorStop(0, 'rgba(180,20,0,0.95)');
+        grad.addColorStop(0.3, 'rgba(220,80,0,0.85)');
+        grad.addColorStop(0.6, 'rgba(240,160,0,0.6)');
+        grad.addColorStop(1, 'rgba(255,220,100,0)');
+      } else if (intensity > 0.3) {
+        grad.addColorStop(0, 'rgba(200,80,0,0.9)');
+        grad.addColorStop(0.4, 'rgba(230,140,0,0.7)');
+        grad.addColorStop(1, 'rgba(255,200,80,0)');
+      } else {
+        grad.addColorStop(0, 'rgba(210,120,0,0.8)');
+        grad.addColorStop(0.5, 'rgba(240,180,60,0.5)');
+        grad.addColorStop(1, 'rgba(255,220,100,0)');
+      }
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(x - fw * 0.5, groundY);
+      ctx.quadraticCurveTo(x - fw * 0.6, groundY - fh * 0.5, x, groundY - fh);
+      ctx.quadraticCurveTo(x + fw * 0.6, groundY - fh * 0.5, x + fw * 0.5, groundY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner bright core
+      if (intensity > 0.2) {
+        const innerGrad = ctx.createLinearGradient(x, groundY, x, groundY - fh * 0.6);
+        innerGrad.addColorStop(0, 'rgba(255,255,180,0.5)');
+        innerGrad.addColorStop(1, 'rgba(255,200,0,0)');
+        ctx.fillStyle = innerGrad;
+        ctx.beginPath();
+        ctx.moveTo(x - fw * 0.2, groundY);
+        ctx.quadraticCurveTo(x - fw * 0.2, groundY - fh * 0.4, x, groundY - fh * 0.6);
+        ctx.quadraticCurveTo(x + fw * 0.2, groundY - fh * 0.4, x + fw * 0.2, groundY);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Smoke at top for high intensity
+    if (intensity > 0.5) {
+      const smokeY = groundY - maxFlameH - 10;
+      const smokeGrad = ctx.createRadialGradient(centerX, smokeY, 2, centerX, smokeY, 40 * intensity);
+      smokeGrad.addColorStop(0, 'rgba(120,100,80,0.25)');
+      smokeGrad.addColorStop(1, 'rgba(120,100,80,0)');
+      ctx.fillStyle = smokeGrad;
+      ctx.beginPath();
+      ctx.ellipse(centerX, smokeY, 50 * intensity, 20 * intensity, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Label
+    ctx.fillStyle = '#bbb';
+    ctx.font = '11px Georgia, serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('Intensity: ' + (intensity < 0.25 ? 'low' : intensity < 0.55 ? 'moderate' : intensity < 0.8 ? 'high' : 'extreme'), w - 10, h - 10);
+  }
+
+  function update() {
+    const wind = parseInt(document.getElementById('wind').value);
+    const slope = parseInt(document.getElementById('slope').value);
+    const moisture = parseInt(document.getElementById('moisture').value);
+
+    document.getElementById('wind-val').textContent = wind + ' km/h';
+    document.getElementById('slope-val').textContent = slope + '°';
+    document.getElementById('moisture-val').textContent = moisture + '%';
+
+    const spread = calcSpread(wind, slope, moisture, currentFuel);
+    const risk = getRisk(spread);
+    const plain = getPlainLanguage(spread, wind, slope, moisture, currentFuel);
+
+    document.getElementById('risk-level').textContent = risk.label;
+    document.getElementById('risk-level').style.color = risk.color;
+    document.getElementById('plain-language').textContent = plain;
+    document.getElementById('risk-marker').style.left = risk.pos + '%';
+
+    drawFire(spread, risk);
+
+    document.getElementById('a11y-live').textContent =
+      'Risk level: ' + risk.label + '. ' + plain +
+      ' Conditions: ' + wind + ' km/h wind, ' + slope + '° slope, ' +
+      moisture + '% fuel moisture, ' + fuels[currentFuel].label + '.';
+  }
+
+  document.getElementById('wind').addEventListener('input', update);
+  document.getElementById('slope').addEventListener('input', update);
+  document.getElementById('moisture').addEventListener('input', update);
+  window.addEventListener('resize', update);
+
+  update();
+</script>
+</body>
+</html>
